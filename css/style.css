@@ -149,6 +149,68 @@ html, body {
   color: var(--text-dim);
 }
 
+/* ---- Sound Toggle Button ---- */
+.title-bottom-info {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.channel-info {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.sound-toggle {
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.15);
+  color: var(--text-dim);
+  font-family: var(--game-font);
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 120px;
+  text-align: center;
+}
+.sound-toggle.sound-on {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,215,0,0.1);
+  box-shadow: 0 0 8px rgba(255,215,0,0.2);
+}
+.sound-toggle.sound-off {
+  border-color: rgba(255,255,255,0.15);
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.05);
+}
+.sound-toggle:hover {
+  transform: scale(1.05);
+  border-color: var(--gold);
+}
+.sound-toggle:active {
+  transform: scale(0.95);
+}
+
+/* 게임 중 상단 HUD 사운드 토글 */
+.sound-hud {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+  font-size: 11px;
+  padding: 6px 12px;
+  min-width: auto;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.sound-hud:hover {
+  opacity: 1;
+}
+
 /* ---- Character Select Screen ---- */
 .select-content {
   text-align: center;

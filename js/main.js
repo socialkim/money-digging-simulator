@@ -18,21 +18,22 @@ class App {
     this.renderer = new Renderer(this.canvas);
     this.ui = new UI(this.uiLayer);
     this.audio = new GameAudio();
+    this.ui.setAudio(this.audio); // UI에 오디오 연결
     this.game = new Game(this.renderer, this.ui, this.audio);
 
     this.audioInitialized = false;
   }
 
   init() {
-    // 사용자 상호작용 시 오디오 초기화
+    // 사용자 상호작용 시 오디오 초기화 (클릭/터치 어디서든)
     const initAudioOnce = () => {
       if (!this.audioInitialized) {
         this.audio.init();
         this.audioInitialized = true;
       }
     };
-    document.addEventListener('click', initAudioOnce, { once: true });
-    document.addEventListener('touchstart', initAudioOnce, { once: true });
+    document.addEventListener('click', initAudioOnce);
+    document.addEventListener('touchstart', initAudioOnce);
 
     // 렌더러 시작
     this.renderer.init();

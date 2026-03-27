@@ -10,6 +10,57 @@ export class UI {
     this.choicesContainer = null;
     this.currentDialogue = null;
     this.isTyping = false;
+    this.audio = null; // audio 참조 (나중에 setAudio로 설정)
+    this.soundToggleBtn = null; // 상단 사운드 토글 버튼
+  }
+
+  /**
+   * 오디오 시스템 연결
+   */
+  setAudio(audio) {
+    this.audio = audio;
+  }
+
+  /**
+   * 사운드 상태 텍스트 반환
+   */
+  getSoundLabel() {
+    if (!this.audio) return '🔇 음성 OFF';
+    return this.audio.enabled ? '🔊 음성 ON' : '🔇 음성 OFF';
+  }
+
+  /**
+   * 사운드 토글 처리
+   */
+  toggleSound() {
+    if (!this.audio) return;
+    this.audio.toggle();
+    // 모든 사운드 토글 버튼 업데이트
+    const label = this.getSoundLabel();
+    document.querySelectorAll('.sound-toggle').forEach(el => {
+      el.textContent = label;
+      el.classList.toggle('sound-on', this.audio.enabled);
+      el.classList.toggle('sound-off', !this.audio.enabled);
+    });
+  }
+
+  /**
+   * 게임 중 상단 HUD에 사운드 토글 표시
+   */
+  showSoundHUD() {
+    // 이미 존재하면 제거 후 재생성
+    if (this.soundToggleBtn) this.soundToggleBtn.remove();
+
+    const btn = document.createElement('button');
+    btn.className = 'sound-toggle sound-hud ' + (this.audio && this.audio.enabled ? 'sound-on' : 'sound-off');
+    btn.textContent = this.getSoundLabel();
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSound();
+      if (this.audio && this.audio.enabled) this.audio.playSelect();
+    });
+    this.container.appendChild(btn);
+    this.soundToggleBtn = btn;
   }
 
   /**
@@ -33,15 +84,28 @@ export class UI {
           시작하기
         </button>
 
-        <p class="game-info">🔊 음성 OFF | 채널: 머니인사이드</p>
+        <div class="title-bottom-info">
+          <button class="sound-toggle ${this.audio && this.audio.enabled ? 'sound-on' : 'sound-off'}">${this.getSoundLabel()}</button>
+          <span class="channel-info">채널: 머니인사이드</span>
+        </div>
       </div>
     `;
 
     this.container.appendChild(titleScreen);
 
+    // 시작 버튼
     titleScreen.querySelector('.button-start').addEventListener('click', () => {
+      if (this.audio) this.audio.playConfirm();
       titleScreen.remove();
       onStart();
+    });
+
+    // 사운드 토글 버튼
+    titleScreen.querySelector('.sound-toggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleSound();
+      // 토글 후 ON이면 효과음 재생해서 확인
+      if (this.audio && this.audio.enabled) this.audio.playSelect();
     });
   }
 

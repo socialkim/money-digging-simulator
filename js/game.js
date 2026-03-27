@@ -42,6 +42,7 @@ export class Game {
    */
   start() {
     this.state.screen = 'select';
+    this.ui.showSoundHUD(); // 게임 중 사운드 토글 HUD 표시
     this.ui.showCharacterSelect(CHARACTERS, (charId) => this.selectCharacter(charId));
   }
 
