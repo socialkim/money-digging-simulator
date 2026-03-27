@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a1a">
+
+  <!-- Open Graph for Social Sharing -->
+  <meta property="og:title" content="머니디깅클럽 시뮬레이터">
+  <meta property="og:description" content="당신이 출연자! AI 토크쇼 인터랙티브 게임">
+  <meta property="og:type" content="game">
+  <meta property="og:url" content="https://money-digging-simulator.vercel.app">
+  <meta property="og:image" content="https://money-digging-simulator.vercel.app/og-image.png">
+
+  <!-- Favicon as inline SVG (pixel art microphone) -->
+  <link rel="icon" href="data:image/svg+xml,
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
+      <rect x='4' y='2' width='8' height='6' fill='%23FFD700'/>
+      <rect x='6' y='8' width='4' height='2' fill='%23666'/>
+      <rect x='5' y='10' width='6' height='1' fill='%23999'/>
+      <rect x='4' y='11' width='8' height='1' fill='%23333'/>
+    </svg>">
+
+  <title>머니디깅클럽 시뮬레이터</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="ui-layer"></div>
+    <div id="overlay"></div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

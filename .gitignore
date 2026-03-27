@@ -1,0 +1,32 @@
+# 의존성
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# 운영 체제
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# 배포
+dist/
+build/
+.env
+.env.local
+.env.*.local
+
+# 로그
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.bak
+.cache/

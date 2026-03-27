@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a1a">
+
+  <!-- Open Graph for Social Sharing -->
+  <meta property="og:title" content="머니디깅클럽 시뮬레이터">
+  <meta property="og:description" content="당신이 출연자! AI 토크쇼 인터랙티브 게임">
+  <meta property="og:type" content="game">
+  <meta property="og:url" content="https://money-digging-simulator.vercel.app">
+  <meta property="og:image" content="https://money-digging-simulator.vercel.app/og-image.png">
+
+  <!-- Favicon as inline SVG (pixel art microphone) -->
+  <link rel="icon" href="data:image/svg+xml,
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>
+      <rect x='4' y='2' width='8' height='6' fill='%23FFD700'/>
+      <rect x='6' y='8' width='4' height='2' fill='%23666'/>
+      <rect x='5' y='10' width='6' height='1' fill='%23999'/>
+      <rect x='4' y='11' width='8' height='1' fill='%23333'/>
+    </svg>">
+
+  <title>머니디깅클럽 시뮬레이터</title>
+
+  <style>
+/* ============================================
+   머니디깅클럽 시뮬레이터 - 스타일시트
+   CSS 클래스명은 js/ui.js와 정확히 매칭됨
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@400;700;900&display=swap');
+
+/* ============================================
+   CSS Variables
+   ============================================ */
+:root {
+  --bg: #0a0a1a;
+  --bg-card: #14142b;
+  --gold: #FFD700;
+  --gold-dark: #B8960F;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --safe: #4CAF50;
+  --bold: #FF9800;
+  --funny: #E91E63;
+  --pixel-font: 'Press Start 2P', monospace;
+  --game-font: 'Noto Sans KR', sans-serif;
+}
+
+/* ============================================
+   Reset & Base
+   ============================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--game-font);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* ============================================
+   Game Container
+   ============================================ */
+#game-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+#game-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  width: 100%;
+  max-height: 45vh;
+  object-fit: contain;
+  background: #1a1a2e;
+}
+
+#ui-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+#ui-layer > * { pointer-events: auto; }
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes fadeOut { from{opacity:1} to{opacity:0} }
+@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes slideDown { from{transform:translateY(-30px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+@keyframes flash { 0%{opacity:1} 50%{opacity:0} 100%{opacity:1} }
+@keyframes bounceIn { 0%{transform:scale(0.3);opacity:0} 50%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes fall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+@keyframes glowPulse { 0%,100%{text-shadow:0 0 10px rgba(255,215,0,0.5)} 50%{text-shadow:0 0 30px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.3)} }
+
+/* ============================================
+   UI Screens (Title, Select, Result)
+   ============================================ */
+.ui-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.92);
+  z-index: 50;
+  animation: fadeIn 0.4s ease;
+}
+
+/* ---- Title Screen ---- */
+.title-content {
+  text-align: center;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+}
+.game-title {
+  font-family: var(--pixel-font);
+  font-size: clamp(14px, 4vw, 22px);
+  color: var(--gold);
+  line-height: 1.8;
+  animation: glowPulse 3s infinite;
+  margin-bottom: 16px;
+}
+.game-subtitle {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 32px;
+}
+.title-graphic {
+  font-size: 48px;
+  margin-bottom: 32px;
+  animation: float 3s ease-in-out infinite;
+}
+.button-start {
+  display: inline-block;
+  padding: 14px 48px;
+  font-family: var(--pixel-font);
+  font-size: 12px;
+  color: #000;
+  background: var(--gold);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px #000, 0 0 0 5px var(--gold);
+  transition: all 0.2s;
+  animation: pulse 2s infinite;
+}
+.button-start:hover { transform: scale(1.08); box-shadow: 0 0 0 3px #000, 0 0 0 5px var(--gold), 0 0 20px rgba(255,215,0,0.5); }
+.button-start:active { transform: scale(0.95); }
+.game-info {
+  margin-top: 24px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---- Character Select Screen ---- */
+.select-content {
+  text-align: center;
+  padding: 20px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.select-content h2 {
+  font-family: var(--pixel-font);
+  font-size: clamp(11px, 3vw, 16px);
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.select-subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+.character-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.character-card {
+  background: var(--bg-card);
+  padding: 18px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  box-shadow: 0 0 0 2px #222, 0 0 0 4px #444;
+}
+.character-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--gold);
+}
+.character-card:active { transform: scale(0.97); }
+.char-emoji { font-size: 36px; margin-bottom: 8px; }
+.char-name {
+  font-family: var(--pixel-font);
+  font-size: 10px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.char-role {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.char-desc {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* ---- Result Screen ---- */
+.result-content {
+  text-align: center;
+  padding: 20px;
+  max-width: 450px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.result-title {
+  font-family: var(--pixel-font);
+  font-size: 14px;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+.result-card {
+  background: var(--bg-card);
+  padding: 24px 16px;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--gold);
+  margin-bottom: 20px;
+}
+.result-grade {
+  font-family: var(--pixel-font);
+  font-size: clamp(20px, 6vw, 36px);
+  color: var(--gold);
+  margin-bottom: 12px;
+  animation: bounceIn 0.6s ease;
+}
+.result-character { margin-bottom: 12px; }
+.result-emoji { font-size: 40px; }
+.result-name { font-size: 16px; font-weight: 700; margin-top: 4px; }
+.result-data { text-align: left; }
+.result-title-large {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.result-rating, .result-viewers {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.result-personality {
+  margin: 12px 0;
+  padding: 10px;
+  background: rgba(255,215,0,0.1);
+  font-size: 13px;
+  text-align: center;
+}
+.result-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.stat-item {
+  background: rgba(255,255,255,0.05);
+  padding: 8px;
+  text-align: center;
+}
+.stat-label { font-size: 11px; color: var(--text-dim); display: block; }
+.stat-value { font-size: 16px; font-weight: 800; color: var(--gold); }
+.result-comments {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 12px;
+}
+.comment {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.button-restart {
+  padding: 12px 36px;
+  font-family: var(--pixel-font);
+  font-size: 10px;
+  color: var(--gold);
+  background: transparent;
+  border: 2px solid var(--gold);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.button-restart:hover { background: rgba(255,215,0,0.1); transform: scale(1.05); }
+
+/* ============================================
+   Dialogue Box
+   ============================================ */
+.dialogue-box {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(10,10,26,0.95);
+  border-top: 3px solid var(--gold);
+  padding: 16px 20px 20px;
+  min-height: 100px;
+  z-index: 30;
+  animation: slideUp 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.5);
+}
+.speaker-label {
+  display: inline-block;
+  padding: 4px 14px;
+  font-family: var(--pixel-font);
+  font-size: 9px;
+  color: #000;
+  font-weight: 700;
+  margin-bottom: 10px;
+  box-shadow: 0 0 0 2px #000;
+}
+.dialogue-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  word-break: keep-all;
+  min-height: 48px;
+}
+.dialogue-indicator {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  color: var(--gold);
+  font-size: 14px;
+  animation: blink 1s infinite;
+}
+
+/* ============================================
+   Choice Buttons
+   ============================================ */
+.choices-container {
+  position: fixed;
+  bottom: 120px;
+  left: 0;
+  right: 0;
+  padding: 0 12px 12px;
+  z-index: 35;
+}
+.choices-content {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choices-content.slide-in {
+  animation: slideUp 0.4s ease;
+}
+.choice-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border: 2px solid #333;
+  color: var(--text);
+  font-family: var(--game-font);
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  word-break: keep-all;
+}
+.choice-button:hover {
+  border-color: var(--gold);
+  background: rgba(255,215,0,0.08);
+  transform: translateX(4px);
+}
+.choice-button:active { transform: scale(0.98); }
+.choice-safe:hover { border-color: var(--safe); }
+.choice-bold:hover { border-color: var(--bold); }
+.choice-funny:hover { border-color: var(--funny); }
+.mood-indicator { font-size: 16px; flex-shrink: 0; }
+.choice-text { flex: 1; }
+
+/* ============================================
+   Progress Bar & Viewer Count (HUD)
+   ============================================ */
+.progress-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  z-index: 40;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.5s ease;
+  width: 0;
+}
+.viewer-count-container {
+  position: fixed;
+  top: 6px;
+  right: 12px;
+  z-index: 40;
+}
+.viewer-count {
+  font-family: var(--pixel-font);
+  font-size: 8px;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.6);
+  padding: 4px 8px;
+}
+
+/* ============================================
+   Scene Transition
+   ============================================ */
+.scene-transition {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  animation: fadeIn 0.3s ease;
+  transition: opacity 0.6s ease;
+}
+.transition-content { text-align: center; animation: bounceIn 0.5s ease; }
+.transition-frame {
+  padding: 24px 40px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 4px rgba(255,215,0,0.2);
+}
+.transition-part {
+  font-family: var(--pixel-font);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+.transition-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.transition-section {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ============================================
+   System Message
+   ============================================ */
+.system-message {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(20,20,43,0.9);
+  border: 1px solid #333;
+  font-size: 13px;
+  color: var(--text-dim);
+  z-index: 45;
+  animation: slideDown 0.3s ease;
+  transition: opacity 0.3s ease;
+  max-width: 90%;
+  text-align: center;
+  word-break: keep-all;
+}
+.system-message.event {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(255,215,0,0.1);
+}
+
+/* ============================================
+   Event Overlay
+   ============================================ */
+.event-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 55;
+  animation: fadeIn 0.3s ease;
+  transition: opacity 0.3s ease;
+}
+.event-content {
+  font-family: var(--pixel-font);
+  font-size: clamp(11px, 3vw, 16px);
+  color: var(--gold);
+  text-align: center;
+  padding: 20px;
+  line-height: 2;
+  animation: bounceIn 0.5s ease;
+}
+.event-shake { animation: shake 0.5s ease; }
+.event-flash .event-content { animation: flash 0.3s ease 3; }
+
+/* Confetti */
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 0;
+  animation: fall 2.5s linear forwards;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 480px) {
+  .dialogue-box { padding: 12px 14px 16px; min-height: 80px; }
+  .dialogue-text { font-size: 13px; }
+  .choice-button { font-size: 13px; padding: 10px 12px; }
+  .choices-container { bottom: 96px; }
+  .character-grid { gap: 8px; }
+  .character-card { padding: 14px 8px; }
+  .char-emoji { font-size: 28px; }
+}
+
+@media (min-width: 768px) {
+  #game-canvas { max-height: 55vh; }
+  .dialogue-box { max-width: 700px; left: 50%; transform: translateX(-50%); border-radius: 0; }
+  .choices-container { max-width: 700px; left: 50%; transform: translateX(-50%); }
+}
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+    <div id="ui-layer"></div>
+    <div id="overlay"></div>
+  </div>
+
+  <script>
+(function() {
+  // ============================================
+  // SPRITES.JS - Pixel art sprite definitions
+  // ============================================
+
+  const PALETTES = {
+    park: {
+      '_': null, 'S': '#FFD5B8', 'H': '#4A3728', 'h': '#6B5240', 'G': '#E8F0FF', 'g': '#A8C8FF', 'T': '#4A4A4A', 't': '#6B6B6B', 'W': '#FFFFFF', 'B': '#2B5BA8', 'b': '#1E4080', 'e': '#000000',
+    },
+    shin: {
+      '_': null, 'S': '#F5C8B8', 'D': '#2D1810', 'd': '#4A2818', 'P': '#E87BA8', 'p': '#D85B88', 'G': '#FFD700', 'W': '#FFFFFF', 'e': '#000000',
+    },
+    kim: {
+      '_': null, 'S': '#F0C8B0', 'D': '#2D2015', 'd': '#4A3828', 'F': '#D4A574', 'f': '#A8844A', 'G': '#FFE8A8', 'O': '#C85A28', 'o': '#A84A18', 'W': '#FFFFFF', 'Y': '#D4B840', 'y': '#A88A20', 'e': '#000000',
+    },
+    bit: {
+      '_': null, 'S': '#F5D8C8', 'P': '#7B3FA8', 'p': '#5A2B80', 'H': '#3A3A3A', 'Y': '#FFD700', 'y': '#E8C000', 'e': '#000000',
+    },
+  };
+
+  const SPRITES = {
+    park: { idle: [['________________','__hhhhhhhhhh____','_hH_HhHhHh_Hh___','_hHG_GG_GhHhH___','_hHGG_GGGhH_H___','_hHG_GGGGH_HhH__','_hHh_GGG_h_HhH__','__hhhhhhhhhH____','________WW_W____','________WW_W____','____TTWTTWW_W___','___TTWTTTWW_W___','___TTWTTTWbeW___','___TTWTTTW_W____','___TTWTTTB_B____','____TTWTBBB_____','____TT_bB_b_____','_____TT__T______','_____TT_bTb_____','_____TT__TT_____','________________','________________',],[]], talk: [[[]], []], react: [[[]]] },
+    shin: { idle: [[[]], []], talk: [[[]], []], react: [[[]]] },
+    kim: { idle: [[[]], []], talk: [[[]], []], react: [[[]]] },
+    bit: { idle: [[[]], []], talk: [[[]], []], react: [[[]]] },
+  };
+
+  const FURNITURE = {
+    table: { palette: { '_': null, 'T': '#8B4513', 't': '#654321', 'E': '#A0522D', }, rows: [] },
+    microphone: { palette: { '_': null, 'M': '#505050', 'm': '#303030', 'B': '#2A2A2A', 'G': '#FFD700', }, rows: [] },
+    onAirSign: { palette: { '_': null, 'R': '#FF2020', 'r': '#CC1010', 'B': '#000000', 'G': '#FF6060', }, rows: [] },
+  };
+
+  function getSprite(charId, state, frame = 0) {
+    if (!SPRITES[charId]) throw new Error(`Unknown character: ${charId}`);
+    if (!SPRITES[charId][state]) throw new Error(`Unknown state: ${state}`);
+    const spriteData = SPRITES[charId][state];
+    const frameIndex = frame % spriteData.length;
+    const rows = spriteData[frameIndex];
+    return { palette: PALETTES[charId], rows: rows };
+  }
+
+  function getFurniture(furnitureId) {
+    if (!FURNITURE[furnitureId]) throw new Error(`Unknown furniture: ${furnitureId}`);
+    return FURNITURE[furnitureId];
+  }
+
+  const CHARACTER_IDS = ['park', 'shin', 'kim', 'bit'];
+  const CHARACTER_INFO = {
+    park: { name: '박정호', title: 'MC' },
+    shin: { name: '신혜원', title: 'MC' },
+    kim: { name: '김덕진', title: 'AI전문가' },
+    bit: { name: '비트PD', title: 'YouTuber' },
+  };
+
+  // ============================================
+  // RENDERER.JS - Canvas renderer
+  // ============================================
+
+  const NATIVE_WIDTH = 240;
+  const NATIVE_HEIGHT = 160;
+  const CHARACTER_POSITIONS = {
+    park: { x: 40, y: 50, anchorX: 8, anchorY: 11 },
+    shin: { x: 180, y: 50, anchorX: 8, anchorY: 11 },
+    kim: { x: 40, y: 100, anchorX: 8, anchorY: 11 },
+    bit: { x: 180, y: 100, anchorX: 8, anchorY: 11 },
+  };
+
+  class Renderer {
+    constructor(displayCanvas) {
+      this.displayCanvas = displayCanvas;
+      this.displayCtx = displayCanvas.getContext('2d');
+      this.canvas = document.createElement('canvas');
+      this.canvas.width = NATIVE_WIDTH;
+      this.canvas.height = NATIVE_HEIGHT;
+      this.ctx = this.canvas.getContext('2d');
+      this.frameCount = 0;
+      this.animationFrameId = null;
+      this.running = false;
+      this.characterStates = {
+        park: { state: 'idle', frame: 0 },
+        shin: { state: 'idle', frame: 0 },
+        kim: { state: 'idle', frame: 0 },
+        bit: { state: 'idle', frame: 0 },
+      };
+      this.activeSpeaker = null;
+      this.playerCharacter = null;
+      this.floatingEmojis = [];
+      this.onAirPulse = 0;
+      this.particles = this.generateParticles();
+    }
+
+    init() {
+      this.displayCtx.imageSmoothingEnabled = false;
+      this.displayCtx.webkitImageSmoothingEnabled = false;
+      this.displayCtx.msImageSmoothingEnabled = false;
+      this.scaleToWindow();
+      window.addEventListener('resize', () => this.scaleToWindow());
+    }
+
+    scaleToWindow() {
+      const aspectRatio = NATIVE_WIDTH / NATIVE_HEIGHT;
+      let width = window.innerWidth * 0.9;
+      let height = window.innerHeight * 0.9;
+      if (width / height > aspectRatio) width = height * aspectRatio;
+      else height = width / aspectRatio;
+      this.displayCanvas.width = width;
+      this.displayCanvas.height = height;
+    }
+
+    setActiveSpeaker(charId) { this.activeSpeaker = charId; }
+    setCharacterState(charId, state) {
+      if (this.characterStates[charId]) {
+        this.characterStates[charId].state = state;
+        this.characterStates[charId].frame = 0;
+      }
+    }
+    setPlayerCharacter(charId) { this.playerCharacter = charId; }
+    showEmoji(charId, emoji) {
+      const pos = CHARACTER_POSITIONS[charId];
+      if (pos) {
+        this.floatingEmojis.push({ emoji, x: pos.x, y: pos.y - 20, life: 60, maxLife: 60 });
+      }
+    }
+
+    generateParticles() {
+      const particles = [];
+      for (let i = 0; i < 12; i++) {
+        particles.push({
+          x: Math.random() * NATIVE_WIDTH,
+          y: Math.random() * NATIVE_HEIGHT,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          life: Math.random() * 100 + 50,
+          maxLife: 100,
+        });
+      }
+      return particles;
+    }
+
+    updateParticles() {
+      for (let p of this.particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) {
+          p.x = Math.random() * NATIVE_WIDTH;
+          p.y = Math.random() * NATIVE_HEIGHT;
+          p.life = 100;
+        }
+        if (p.x < 0 || p.x > NATIVE_WIDTH) p.vx *= -1;
+        if (p.y < 0 || p.y > NATIVE_HEIGHT) p.vy *= -1;
+      }
+    }
+
+    render() {
+      this.frameCount++;
+      this.ctx.fillStyle = '#1a1a2e';
+      this.ctx.fillRect(0, 0, NATIVE_WIDTH, NATIVE_HEIGHT);
+      this.drawStudioBackground();
+      this.updateParticles();
+      this.drawParticles();
+      this.updateEmojis();
+      this.drawEmojis();
+      this.scaleToDisplay();
+    }
+
+    drawStudioBackground() {
+      const gradient = this.ctx.createLinearGradient(0, 0, 0, NATIVE_HEIGHT);
+      gradient.addColorStop(0, '#16213e');
+      gradient.addColorStop(1, '#0f3460');
+      this.ctx.fillStyle = gradient;
+      this.ctx.fillRect(0, 0, NATIVE_WIDTH, NATIVE_HEIGHT);
+      this.ctx.strokeStyle = '#1a3a4a';
+      this.ctx.lineWidth = 0.5;
+      for (let i = 0; i <= NATIVE_HEIGHT; i += 16) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, i);
+        this.ctx.lineTo(NATIVE_WIDTH, i);
+        this.ctx.stroke();
+      }
+      for (let i = 0; i <= NATIVE_WIDTH; i += 16) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(i, 0);
+        this.ctx.lineTo(i, NATIVE_HEIGHT);
+        this.ctx.stroke();
+      }
+      this.drawLighting();
+    }
+
+    drawLighting() {
+      const gradL = this.ctx.createRadialGradient(20, 60, 0, 20, 60, 50);
+      gradL.addColorStop(0, 'rgba(255, 100, 50, 0.1)');
+      gradL.addColorStop(1, 'rgba(255, 100, 50, 0)');
+      this.ctx.fillStyle = gradL;
+      this.ctx.fillRect(0, 30, 80, 100);
+      const gradR = this.ctx.createRadialGradient(NATIVE_WIDTH - 20, 60, 0, NATIVE_WIDTH - 20, 60, 50);
+      gradR.addColorStop(0, 'rgba(100, 150, 255, 0.1)');
+      gradR.addColorStop(1, 'rgba(100, 150, 255, 0)');
+      this.ctx.fillStyle = gradR;
+      this.ctx.fillRect(NATIVE_WIDTH - 80, 30, 80, 100);
+    }
+
+    drawParticles() {
+      this.ctx.fillStyle = 'rgba(200, 200, 220, 0.4)';
+      for (let p of this.particles) {
+        const alpha = (p.life / p.maxLife) * 0.3;
+        this.ctx.fillStyle = `rgba(200, 200, 220, ${alpha})`;
+        this.ctx.fillRect(p.x, p.y, 1, 1);
+      }
+    }
+
+    updateEmojis() {
+      this.floatingEmojis = this.floatingEmojis.filter((e) => {
+        e.y -= 0.5;
+        e.life--;
+        return e.life > 0;
+      });
+    }
+
+    drawEmojis() {
+      for (let emoji of this.floatingEmojis) {
+        const alpha = emoji.life / emoji.maxLife;
+        this.ctx.globalAlpha = alpha;
+        this.ctx.font = '14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(emoji.emoji, emoji.x, emoji.y);
+        this.ctx.globalAlpha = 1;
+      }
+    }
+
+    drawSpriteData(rows, palette, x, y) {
+      const spriteWidth = rows[0].length;
+      const spriteHeight = rows.length;
+      for (let row = 0; row < spriteHeight; row++) {
+        for (let col = 0; col < spriteWidth; col++) {
+          const char = rows[row][col];
+          const color = palette[char];
+          if (color !== null && color !== undefined) {
+            this.ctx.fillStyle = color;
+            this.ctx.fillRect(x + col, y + row, 1, 1);
+          }
+        }
+      }
+    }
+
+    scaleToDisplay() {
+      this.displayCtx.fillStyle = '#000000';
+      this.displayCtx.fillRect(0, 0, this.displayCanvas.width, this.displayCanvas.height);
+      this.displayCtx.drawImage(this.canvas, 0, 0, NATIVE_WIDTH, NATIVE_HEIGHT, 0, 0, this.displayCanvas.width, this.displayCanvas.height);
+    }
+
+    start() {
+      if (this.running) return;
+      this.running = true;
+      const animate = () => {
+        this.render();
+        this.animationFrameId = requestAnimationFrame(animate);
+      };
+      animate();
+    }
+
+    stop() {
+      this.running = false;
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+    }
+  }
+
+  // ============================================
+  // AUDIO.JS - Web Audio API sound effects
+  // ============================================
+
+  class Audio {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+      this.masterGain = null;
+    }
+
+    init() {
+      if (this.ctx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.3;
+      this.masterGain.connect(this.ctx.destination);
+    }
+
+    playType() {
+      if (!this.enabled || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const duration = 0.05;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+
+    playSelect() {
+      if (!this.enabled || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const duration = 0.1;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.linearRampToValueAtTime(600, now + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+
+    playConfirm() {
+      if (!this.enabled || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      this.playTone(500, 0.08, now);
+      this.playTone(700, 0.08, now + 0.1);
+    }
+
+    playTone(freq, duration, time) {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      gain.gain.setValueAtTime(0.25, time);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+    }
+
+    playReact() {
+      if (!this.enabled || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const duration = 0.15;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.linearRampToValueAtTime(800, now + duration * 0.5);
+      osc.frequency.linearRampToValueAtTime(400, now + duration);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+      osc.start(now);
+      osc.stop(now + duration);
+    }
+
+    toggle() { this.enabled = !this.enabled; }
+    setVolume(value) {
+      if (this.masterGain) this.masterGain.gain.value = Math.max(0, Math.min(1, value));
+    }
+  }
+
+  // ============================================
+  // DATA.JS - Game content
+  // ============================================
+
+  const CHARACTERS = {
+    park: { id: 'park', name: '박정호', role: 'MC · 교수', color: '#4FC3F7', emoji: '🎓', description: '지혜로운 경제 교수' },
+    shin: { id: 'shin', name: '신혜원', role: 'MC · 기자', color: '#F48FB1', emoji: '🎤', description: '날카로운 시사 기자' },
+    kim: { id: 'kim', name: '김덕진', role: 'IT연구소 소장', color: '#FF8A65', emoji: '🤖', description: 'AI 전문가' },
+    bit: { id: 'bit', name: '비트PD', role: '테크 유튜버', color: '#AB47BC', emoji: '🎬', description: '트렌드 감지 능력자' },
+  };
+
+  const SCENES = [
+    { type: 'scene_change', part: '1부', title: 'AI는 어디까지 발전했을까?', section: '오프닝', time: '00:00~10:00' },
+    { type: 'system', text: '🎬 머니디깅클럽 스튜디오' },
+    { type: 'event', text: '인트로 테마곡이 울려 퍼진다!', effect: 'flash' },
+    { type: 'dialogue', speaker: 'park', text: '안녕하세요, 박정호입니다. 여러분을 환영합니다!' },
+    { type: 'dialogue', speaker: 'shin', text: '신혜원입니다! 오늘은 정말 핫한 주제인데요...' },
+    { type: 'dialogue', speaker: 'park', text: '맞아요. 우리가 매일 마주치는 AI. 과연 어디까지 왔을까요?' },
+    { type: 'system', text: '📺 스튜디오 관객 수: 12,847명' },
+    { type: 'dialogue', speaker: 'kim', text: '안녕하세요. 김덕진입니다. IT 트렌드 얘기 하려고 왔어요.' },
+    { type: 'dialogue', speaker: 'bit', text: '비트입니다! 요즘 AI 화제 엄청 많더라고요.' },
+    { type: 'dialogue', speaker: 'shin', text: '다들 잘 오셨어요. 그럼 이제 돈 이야기에 파고드는 시간을 시작하겠습니다!' },
+    { type: 'system', text: '지금부터 당신은 패널 중 한 명이 됩니다.' },
+    { type: 'dialogue', speaker: 'park', text: '그런데 요즘 정말 AI 얘기가 많잖아요. 최근에 직접 AI를 써보면서 충격받은 경험 있으신가요?' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '최근 AI 경험',
+      options: [
+        { text: 'ChatGPT로 업무 처리했는데 정말 빨랐어요. 효율성 증가 확실하더라고요.', mood: 'safe', score: 1 },
+        { text: '사실 AI가 우리 직업을 대체할 수 있겠다는 생각이 들었어요. 위험하지 않나요?', mood: 'bold', score: 2 },
+        { text: 'AI가 만든 이미지를 보니 이게 진짜 예술인가 싶더라고요. (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    {
+      type: 'reaction', trigger: 'after_first_choice',
+      reactions: {
+        park: ['좋은 지적이네요!', '정확한 답변입니다.', '(웃음) 재미있는 관점이네요!'],
+        shin: ['정말 핵심을 짚었어요.', '공감합니다.', '(웃음) 그 부분 정확해요!'],
+      }
+    },
+    { type: 'scene_change', part: '1부', title: 'AI 판도, 실제로 어떻게 쓰고 있나', section: '챕터 1', time: '10:00~35:00' },
+    { type: 'dialogue', speaker: 'shin', text: '그래서 이제 좀 더 구체적으로 얘기해볼게요. ChatGPT, Claude, Gemini... 어떤 게 제일 좋아요?' },
+    { type: 'dialogue', speaker: 'kim', text: '각각 특성이 다르거든요. ChatGPT는 일반적인 작업에 강하고, Claude는 분석과 글쓰기에 좋아요.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: 'AI 모델 평가',
+      options: [
+        { text: 'Claude가 분석력이 좋다니, 저도 써봐야겠네요.', mood: 'safe', score: 1 },
+        { text: '결국 이게 다 기업의 마케팅 아닌가요? 실제 성능은 거기서 거기 아닌가?', mood: 'bold', score: 3 },
+        { text: '그럼 Gemini는 왜 자꾸 구글 뉴스를 띄우는 거예요? (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'bit', text: '저는 실제 유튜브 영상 제작할 때 AI를 어떻게 쓰는지 얘기하고 싶은데요.' },
+    { type: 'dialogue', speaker: 'bit', text: '영상 편집, 자막 생성, 썸네일 디자인... 이게 다 AI로 가능해졌거든요.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '콘텐츠 제작에서의 AI',
+      options: [
+        { text: '정말 효율적이네요. 이런 도구들을 활용하지 않으면 경쟁에 뒤질 것 같아요.', mood: 'safe', score: 1 },
+        { text: '그런데 AI로 만든 콘텐츠가 과포화되면 시장 가치가 떨어지지 않을까요?', mood: 'bold', score: 2 },
+        { text: 'AI가 만든 썸네일이 대부분 똑같은 것 같은데, 그래서 더 광고 많이 누르는 거 아닐까요? (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    {
+      type: 'reaction', trigger: 'after_content_choice',
+      reactions: { kim: ['정확한 분석이에요.', '맞습니다.', '그게 바로 현재 상황이죠!'] }
+    },
+    { type: 'dialogue', speaker: 'park', text: '결국 중요한 건... AI를 잘 쓰는 사람과 못 쓰는 사람의 격차가 벌어진다는 거네요.' },
+    { type: 'dialogue', speaker: 'shin', text: '네, 그래서 "AI 슬롭"이라는 표현도 나온 것 같아요. AI를 잘 모르는 세대 말이죠.' },
+    { type: 'scene_change', part: '1부', title: '다음 판도를 바꿀 기술', section: '챕터 2', time: '35:00~55:00' },
+    { type: 'dialogue', speaker: 'kim', text: '이제 정말 흥미로운 부분인데요. AI 비디오, 이미지 생성은 이제 현실이 되었어요.' },
+    { type: 'dialogue', speaker: 'kim', text: '그리고 코딩도 마찬가지. "Vibe coding"이라는 게 나왔거든요. 개념만 말해도 AI가 코드를 짜주는 거예요.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '업계 대체 위험도',
+      options: [
+        { text: 'AI가 이 정도면 개발자, 디자이너들이 정말 위험한 거 아닌가요?', mood: 'bold', score: 3 },
+        { text: '오히려 이런 도구를 쓰는 개발자/디자이너가 더 빨리 성장하지 않을까요?', mood: 'safe', score: 1 },
+        { text: '그럼 앞으로는 모두가 풀스택 개발자, 풀스택 디자이너 되는 건가요? (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'event', text: '돌연 스피커에서 AI 음성이 울려 퍼진다!', effect: 'shake' },
+    { type: 'system', text: '🤖 AI 음성: "안녕하세요. 저는 당신들의 대화를 듣고 있습니다."' },
+    { type: 'dialogue', speaker: 'bit', text: '어?! 뭐가 된 거야?!' },
+    { type: 'dialogue', speaker: 'park', text: '(웃음) 이건 오늘 준비한 서프라이즈입니다.' },
+    { type: 'dialogue', speaker: 'shin', text: '(놀라면서 웃음) 정말... 진짜 AI가 우리를 감시하는 건 아니죠?' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: 'AI 감시 현실화',
+      options: [
+        { text: '이게 농담이지만 실제로 스마트글래스, AI 이어폰 시대가 오면 진짜 이렇게 되지 않을까요?', mood: 'bold', score: 3 },
+        { text: '아, 신기한데요. 근데 이런 건 개인정보 문제가 있지 않을까요?', mood: 'safe', score: 1 },
+        { text: '(웃음) 제 흠집까지 다 아는 AI... 무섭긴 하네요.', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'kim', text: '실제로 스마트 글래스, AI 이어폰은 이미 개발 중이에요. 다음 큰 판도 변화가 될 거 같아요.' },
+    { type: 'dialogue', speaker: 'bit', text: '이게 상용화되면 정말 모든 게 바뀔 것 같은데요. 콘텐츠 소비 방식부터요.' },
+    { type: 'dialogue', speaker: 'park', text: '좋아요. 그럼 이제 2부로 넘어가기 전에, 각자 한 마디씩 해주실래요?' },
+    { type: 'dialogue', speaker: 'shin', text: 'AI와 돈... 정말 뜨거운 이슈네요. 2부에서 더 파고들어 보겠습니다!' },
+    { type: 'scene_change', part: '2부', title: 'AI 시대에 돈 버는 사람들의 공통점', section: '오프닝', time: '00:00~20:00' },
+    { type: 'system', text: '🎬 2부 시작! (휴식 후 재개)' },
+    { type: 'dialogue', speaker: 'park', text: '다시 돌아왔습니다, 2부입니다. 이제 본격적으로 돈 이야기를 해볼 거예요.' },
+    { type: 'dialogue', speaker: 'shin', text: '"AI로 월 500만 원을 벌었다" 이런 광고들 많죠? 실제일까요?' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: 'AI로 돈 버는 것의 현실',
+      options: [
+        { text: '분명히 가능하긴 한데, 초기 설정과 학습곡선이 높아서 누구나 가능한 건 아니에요.', mood: 'safe', score: 2 },
+        { text: '대부분 마케팅이거나 극단적 사례 같아요. 평균적으로는 훨씬 적을 겁니다.', mood: 'bold', score: 3 },
+        { text: '근데 진짜 있는 사람들도 있잖아요. 우리 채널에도 AI 도구로 버는 분들 있고요. (웃음)', mood: 'funny', score: 1 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'kim', text: '현실은 이거예요. AI 도구는 누구나 쓸 수 있지만, "어떻게" 쓰느냐가 결정적으로 다릅니다.' },
+    { type: 'dialogue', speaker: 'kim', text: '그리고 이미 시장이 포화되기 시작했어요. AI로 쉽게 만든 콘텐츠는 이미 차별성이 없어요.' },
+    { type: 'scene_change', part: '2부', title: 'AI는 정말 인간을 대체할 수 있을까?', section: '챕터 1', time: '20:00~40:00' },
+    { type: 'dialogue', speaker: 'shin', text: '그래서 핵심 질문인데요. AI가 정말 우리 일자리를 뺏을까요?' },
+    { type: 'dialogue', speaker: 'park', text: '흥미로운 게... "주니어의 종말"이라는 말이 있어요. 신입사원 일자리가 줄어들 수 있다는 거죠.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '직업 대체 가능성',
+      options: [
+        { text: '정말 위험한데요. 특히 반복적인 업무나 사무직이 먼저 없어질 것 같아요.', mood: 'bold', score: 3 },
+        { text: '오히려 새로운 직업이 생기지 않을까요? 과거 산업혁명때도 그랬고요.', mood: 'safe', score: 1 },
+        { text: '근데 생각해보니 AI는 퇴근을 안 하잖아요. (웃음) 이게 큰 차이 아닐까요?', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'event', text: '📊 시청자 투표 이벤트 시작!', effect: 'flash' },
+    { type: 'system', text: '현재 투표: AI가 일자리를 빼앗을까? YES: 67% / NO: 33%' },
+    { type: 'dialogue', speaker: 'shin', text: '와, 시청자들도 대부분 걱정하시네요.' },
+    { type: 'dialogue', speaker: 'kim', text: '맞아요. 그런데 더 정확히 말하면, 고급 일자리보다 초급 일자리가 더 위험한 거 같아요.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '직급별 위험도',
+      options: [
+        { text: '맞아요. 디렉터, 임원급은 AI가 못 대체하지만, 사원급은 AI로 충분할 수 있죠.', mood: 'safe', score: 1 },
+        { text: '그럼 더더욱 불공평한데요? 이미 약한 사람들이 더 약해지는 거 아닌가요?', mood: 'bold', score: 3 },
+        { text: '그럼 모두가 임원이 되면 되지 않나요? (웃음) 농담이지만...', mood: 'funny', score: 1 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'park', text: '좋은 질문이에요. 결국 이건 교육과 재교육의 문제가 될 수 있겠네요.' },
+    { type: 'scene_change', part: '2부', title: '특이점이 온다?', section: '챕터 2', time: '40:00~55:00' },
+    { type: 'dialogue', speaker: 'bit', text: '이제 정말 큰 질문인데요. "특이점(Singularity)"이 올까요?' },
+    { type: 'dialogue', speaker: 'kim', text: '특이점은 AI가 인간의 지능을 완전히 넘어서는 지점이에요. 그 이후는 예측 불가능하죠.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: '특이점 예상 시기',
+      options: [
+        { text: '2030년대에 올 거 같아요. 기술 발전 속도가 정말 빨라지고 있거든요.', mood: 'bold', score: 3 },
+        { text: '아직 수십 년은 남아있을 거 같아요. 아직 너무 낙관적인 예측이 많아요.', mood: 'safe', score: 1 },
+        { text: '특이점이 오면 AI가 우리한테 "넌 뭐 해?" 물을 것 같은데요? (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'shin', text: '근데 정말 흥미로운 건... 사람마다 낙관론과 비관론이 극단적으로 갈려 있다는 거예요.' },
+    { type: 'dialogue', speaker: 'shin', text: '누군가는 "AI가 모든 문제를 해결해줄 것"이라고 하고, 누군가는 "인류 멸망"이라고 하죠.' },
+    {
+      type: 'choice', forCharacters: ['park', 'shin', 'kim', 'bit'], label: 'AI 미래관',
+      options: [
+        { text: '균형잡힌 태도가 필요한 것 같아요. AI의 가능성도, 위험도 모두 인정하면서요.', mood: 'safe', score: 2 },
+        { text: '결국 우리가 어떻게 준비하느냐가 달려있다고 봐요. 주도권은 아직 인간에게 있어요.', mood: 'bold', score: 2 },
+        { text: '사실 우린 이미 충분히 AI에 의존하고 있잖아요. 그럼 뭐하러 지금 와서 걱정해요? (웃음)', mood: 'funny', score: 2 },
+      ]
+    },
+    { type: 'dialogue', speaker: 'park', text: '좋은 말씀들이 많네요. 그럼 마지막으로 각자 한 마디씩 해주겠어요.' },
+    { type: 'scene_change', part: '2부', title: '최종 마무리', section: '클로징', time: '55:00~60:00' },
+    { type: 'dialogue', speaker: 'kim', text: '결론: AI는 도구다. 중요한 건 어떤 마음가짐으로 이 도구를 쓰느냐입니다.' },
+    { type: 'dialogue', speaker: 'bit', text: '저도 동의합니다. AI를 두려워하기보다, 먼저 배우고 실험하는 게 중요해요.' },
+    { type: 'dialogue', speaker: 'shin', text: '결론: AI는 지금 충분히 능력 있지만, 그래도 인간의 판단이 필요합니다.' },
+    { type: 'dialogue', speaker: 'park', text: '마지막으로, 돈 버는 관점에서는... 남들이 못 하는 것을 할 때 수익이 나온다는 거네요.' },
+    { type: 'system', text: '📺 최종 시청자 수: 47,293명! 오늘 방송 감사합니다!' },
+    { type: 'dialogue', speaker: 'all', text: '모두 감사합니다! 다음 주에 또 만나요!' },
+    { type: 'event', text: '엔딩 크레딧 롤!', effect: 'confetti' },
+  ];
+
+  const REACTIONS = {
+    safe_choice: { kim: '좋은 정보 감사합니다.', bit: '그 부분 정확해요.', park: '맞는 말씀이네요.', shin: '공감합니다.' },
+    bold_choice: { kim: '핵심을 짚었어요!', bit: '예리한 지적입니다.', park: '좋은 질문이에요.', shin: '정확한 분석이네요.' },
+    funny_choice: { kim: '(웃음) 맞아요!', bit: '(웃음) 그 부분 재미있네요!', park: '(웃음) 좋은 관점이에요!', shin: '(웃음) 재미있는데요!' },
+  };
+
+  const RESULT_GRADES = {
+    S: { title: '전설의 출연자', rating: '12.7%', personality: '균형잡힌 지성인', comments: ['질문도 예리하고 답변도 사려깊으셨어요!', '시청자들이 당신 팬이 될 것 같습니다.', '다음에도 꼭 와주세요!'] },
+    A: { title: '우수 출연자', rating: '9.3%', personality: '통찰력 있는 토론자', comments: ['좋은 질문들이 많았어요.', '시청자들과 호흡도 잘 맞으셨고요.', '다음 시즌도 기대합니다!'] },
+    B: { title: '착실한 출연자', rating: '6.8%', personality: '신뢰감 있는 발언자', comments: ['성실한 답변들이 좋았어요.', '좀 더 과감한 주장도 들어보고 싶었어요.', '또 뵐 기회가 있으면 좋겠습니다.'] },
+    C: { title: '첫 출연자', rating: '4.2%', personality: '신중한 참관자', comments: ['첫 출연이라 어떠셨나요?', '다음엔 좀 더 과감하게 의견을 나눠주세요!', '더 편하게 오셔도 괜찮아요!'] },
+  };
+
+  const GRADE_THRESHOLD = { S: 70, A: 50, B: 30, C: 0 };
+
+  // ============================================
+  // UI.JS - DOM-based UI layer
+  // ============================================
+
+  class UI {
+    constructor(container) {
+      this.container = container;
+      this.dialogueBox = null;
+      this.choicesContainer = null;
+      this.currentDialogue = null;
+      this.isTyping = false;
+    }
+
+    showTitle(onStart) {
+      this.clearAll();
+      const titleScreen = document.createElement('div');
+      titleScreen.className = 'ui-screen title-screen';
+      titleScreen.innerHTML = `
+        <div class="title-content">
+          <h1 class="game-title">머니디깅클럽 시뮬레이터</h1>
+          <p class="game-subtitle">AI와 돈의 시대, 당신은 어떤 출연자?</p>
+          <div class="title-graphic"><div class="pixel-mic">🎤</div></div>
+          <button class="button-start" data-action="start">시작하기</button>
+          <p class="game-info">🔊 음성 OFF | 채널: 머니인사이드</p>
+        </div>
+      `;
+      this.container.appendChild(titleScreen);
+      titleScreen.querySelector('.button-start').addEventListener('click', () => {
+        titleScreen.remove();
+        onStart();
+      });
+    }
+
+    showCharacterSelect(characters, onSelect) {
+      this.clearAll();
+      const selectScreen = document.createElement('div');
+      selectScreen.className = 'ui-screen select-screen';
+      let html = `<div class="select-content"><h2>출연자를 선택하세요</h2><p class="select-subtitle">당신은 누가 되어 토크쇼에 참여하시겠어요?</p><div class="character-grid">`;
+      Object.values(characters).forEach((char) => {
+        html += `<div class="character-card" data-id="${char.id}"><div class="char-emoji">${char.emoji}</div><h3 class="char-name">${char.name}</h3><p class="char-role">${char.role}</p><p class="char-desc">${char.description}</p></div>`;
+      });
+      html += `</div></div>`;
+      selectScreen.innerHTML = html;
+      this.container.appendChild(selectScreen);
+      selectScreen.querySelectorAll('.character-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const charId = card.dataset.id;
+          selectScreen.remove();
+          onSelect(charId);
+        });
+      });
+    }
+
+    async showDialogueBox(name, text, color, onComplete) {
+      if (this.isTyping) {
+        await new Promise((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (!this.isTyping) { clearInterval(checkInterval); resolve(); }
+          }, 50);
+        });
+      }
+      if (this.dialogueBox) this.dialogueBox.remove();
+      this.dialogueBox = document.createElement('div');
+      this.dialogueBox.className = 'dialogue-box';
+      const speakerLabel = document.createElement('div');
+      speakerLabel.className = 'speaker-label';
+      speakerLabel.style.backgroundColor = color;
+      speakerLabel.textContent = name;
+      const textContent = document.createElement('div');
+      textContent.className = 'dialogue-text';
+      textContent.setAttribute('data-text', text);
+      const indicator = document.createElement('div');
+      indicator.className = 'dialogue-indicator';
+      indicator.innerHTML = '▼';
+      this.dialogueBox.appendChild(speakerLabel);
+      this.dialogueBox.appendChild(textContent);
+      this.dialogueBox.appendChild(indicator);
+      this.container.appendChild(this.dialogueBox);
+      await this.typewriterEffect(textContent, text, 40);
+      return new Promise((resolve) => {
+        const clickHandler = () => {
+          this.dialogueBox.removeEventListener('click', clickHandler);
+          onComplete();
+          resolve();
+        };
+        this.dialogueBox.addEventListener('click', clickHandler);
+      });
+    }
+
+    showChoices(options, onChoose) {
+      if (this.choicesContainer) this.choicesContainer.remove();
+      this.choicesContainer = document.createElement('div');
+      this.choicesContainer.className = 'choices-container';
+      const choicesContent = document.createElement('div');
+      choicesContent.className = 'choices-content';
+      options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.className = `choice-button choice-${option.mood}`;
+        const moodEmoji = { safe: '🟢', bold: '🟠', funny: '🔴' }[option.mood];
+        button.innerHTML = `<span class="mood-indicator">${moodEmoji}</span><span class="choice-text">${option.text}</span>`;
+        button.addEventListener('click', () => {
+          this.choicesContainer.remove();
+          this.choicesContainer = null;
+          onChoose(index);
+        });
+        choicesContent.appendChild(button);
+      });
+      this.choicesContainer.appendChild(choicesContent);
+      this.container.appendChild(this.choicesContainer);
+      choicesContent.classList.add('slide-in');
+    }
+
+    hideDialogue() {
+      if (this.dialogueBox) {
+        this.dialogueBox.style.opacity = '0';
+        this.dialogueBox.style.pointerEvents = 'none';
+      }
+      if (this.choicesContainer) {
+        this.choicesContainer.style.opacity = '0';
+        this.choicesContainer.style.pointerEvents = 'none';
+      }
+    }
+
+    async showSystemMessage(text, isEvent = false) {
+      const message = document.createElement('div');
+      message.className = isEvent ? 'system-message event' : 'system-message';
+      message.textContent = text;
+      this.container.appendChild(message);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          message.style.opacity = '0';
+          setTimeout(() => {
+            message.remove();
+            resolve();
+          }, 300);
+        }, 1500);
+      });
+    }
+
+    async showSceneTransition(part, title, section) {
+      const transition = document.createElement('div');
+      transition.className = 'scene-transition';
+      const content = document.createElement('div');
+      content.className = 'transition-content';
+      content.innerHTML = `<div class="transition-frame"><div class="transition-part">${part}</div><div class="transition-title">${title}</div><div class="transition-section">${section}</div></div>`;
+      transition.appendChild(content);
+      this.container.appendChild(transition);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          transition.style.opacity = '0';
+          setTimeout(() => {
+            transition.remove();
+            resolve();
+          }, 600);
+        }, 2000);
+      });
+    }
+
+    updateProgress(percent) {
+      let progressBar = document.getElementById('progress-bar');
+      if (!progressBar) {
+        const container = document.createElement('div');
+        container.className = 'progress-container';
+        container.innerHTML = '<div id="progress-bar" class="progress-bar"></div>';
+        this.container.appendChild(container);
+        progressBar = document.getElementById('progress-bar');
+      }
+      progressBar.style.width = percent + '%';
+    }
+
+    updateViewerCount(count) {
+      let viewerDisplay = document.getElementById('viewer-count');
+      if (!viewerDisplay) {
+        const container = document.createElement('div');
+        container.className = 'viewer-count-container';
+        container.innerHTML = '<div id="viewer-count" class="viewer-count">👥 0</div>';
+        this.container.appendChild(container);
+        viewerDisplay = document.getElementById('viewer-count');
+      }
+      viewerDisplay.textContent = `👥 ${count.toLocaleString('ko-KR')}`;
+    }
+
+    async showEventOverlay(text, effect) {
+      const overlay = document.createElement('div');
+      overlay.className = `event-overlay event-${effect}`;
+      const content = document.createElement('div');
+      content.className = 'event-content';
+      content.textContent = text;
+      overlay.appendChild(content);
+      this.container.appendChild(overlay);
+      if (effect === 'shake') overlay.classList.add('shake-animation');
+      else if (effect === 'flash') overlay.classList.add('flash-animation');
+      else if (effect === 'confetti') this.createConfetti(overlay);
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            overlay.remove();
+            resolve();
+          }, 300);
+        }, 1500);
+      });
+    }
+
+    showResult(resultData, onRestart) {
+      this.clearAll();
+      const resultScreen = document.createElement('div');
+      resultScreen.className = 'ui-screen result-screen';
+      const gradeEmoji = { S: '⭐', A: '🌟', B: '✨', C: '🌠' }[resultData.grade];
+      let html = `<div class="result-content"><h2 class="result-title">방송 종료!</h2><div class="result-card"><div class="result-grade">${gradeEmoji} ${resultData.grade}등급</div><div class="result-character"><div class="result-emoji">${resultData.character.emoji}</div><div class="result-name">${resultData.character.name}</div></div><div class="result-data"><div class="result-title-large">${resultData.title}</div><div class="result-rating">시청률: ${resultData.rating}</div><div class="result-viewers">최종 시청자: ${resultData.finalViewerCount.toLocaleString('ko-KR')}명</div><div class="result-personality"><strong>당신의 성격:</strong> ${resultData.personality}</div><div class="result-stats"><div class="stat-item"><span class="stat-label">안전함 🟢</span><span class="stat-value">${resultData.choices.safe}회</span></div><div class="stat-item"><span class="stat-label">대담함 🟠</span><span class="stat-value">${resultData.choices.bold}회</span></div><div class="stat-item"><span class="stat-label">재미있음 🔴</span><span class="stat-value">${resultData.choices.funny}회</span></div></div><div class="result-comments">`;
+      resultData.comments.forEach((comment) => { html += `<p class="comment">💬 ${comment}</p>`; });
+      html += `</div></div></div><button class="button-restart">다시 시작</button></div>`;
+      resultScreen.innerHTML = html;
+      this.container.appendChild(resultScreen);
+      resultScreen.querySelector('.button-restart').addEventListener('click', () => {
+        resultScreen.remove();
+        onRestart();
+      });
+    }
+
+    async typewriterEffect(element, text, speed = 40) {
+      this.isTyping = true;
+      element.textContent = '';
+      for (let i = 0; i < text.length; i++) {
+        element.textContent += text[i];
+        await this.delay(speed);
+      }
+      this.isTyping = false;
+    }
+
+    clearAll() {
+      this.container.innerHTML = '';
+      this.dialogueBox = null;
+      this.choicesContainer = null;
+      this.currentDialogue = null;
+      this.isTyping = false;
+    }
+
+    createConfetti(container) {
+      const colors = ['#FFD700', '#FF6B6B', '#4FC3F7', '#F48FB1', '#FF8A65'];
+      for (let i = 0; i < 30; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti-piece';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animation = `fall ${2 + Math.random() * 1}s linear`;
+        container.appendChild(confetti);
+      }
+    }
+
+    delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+  }
+
+  // ============================================
+  // GAME.JS - Game logic
+  // ============================================
+
+  class Game {
+    constructor(renderer, ui, audio) {
+      this.renderer = renderer;
+      this.ui = ui;
+      this.audio = audio;
+      this.state = {
+        screen: 'title',
+        selectedChar: null,
+        currentStep: 0,
+        score: 0,
+        choices: { safe: 0, bold: 0, funny: 0 },
+        viewerCount: 12847,
+        maxViewerCount: 47293,
+        isAnimating: false,
+        choiceCount: 0,
+        totalChoices: 0
+      };
+      this.lastChoiceMood = null;
+    }
+
+    showTitle() {
+      this.state.screen = 'title';
+      this.ui.showTitle(() => this.start());
+    }
+
+    start() {
+      this.state.screen = 'select';
+      this.ui.showCharacterSelect(CHARACTERS, (charId) => this.selectCharacter(charId));
+    }
+
+    selectCharacter(charId) {
+      this.state.selectedChar = charId;
+      this.state.screen = 'playing';
+      this.state.currentStep = 0;
+      this.renderer.setPlayerCharacter(charId);
+      this.ui.updateProgress(0);
+      this.ui.updateViewerCount(this.state.viewerCount);
+      this.processStep();
+    }
+
+    async processStep() {
+      if (this.state.isAnimating) return;
+      if (this.state.currentStep >= SCENES.length) return this.showResult();
+      const step = SCENES[this.state.currentStep];
+      switch (step.type) {
+        case 'scene_change':
+          await this.ui.showSceneTransition(step.part, step.title, step.section);
+          this.updateProgress();
+          break;
+        case 'dialogue':
+          await this.handleDialogue(step);
+          break;
+        case 'system':
+          await this.ui.showSystemMessage(step.text, false);
+          break;
+        case 'event':
+          await this.handleEvent(step);
+          break;
+        case 'choice':
+          await this.handleChoice(step);
+          return;
+        case 'reaction':
+          await this.handleReaction(step);
+          break;
+      }
+      this.state.currentStep++;
+      await this.delay(400);
+      this.processStep();
+    }
+
+    async handleDialogue(step) {
+      const char = CHARACTERS[step.speaker] || CHARACTERS.park;
+      this.renderer.setActiveSpeaker(step.speaker);
+      this.renderer.setCharacterState(step.speaker, 'talk');
+      const isPlayer = step.speaker === this.state.selectedChar;
+      const boxColor = isPlayer ? '#FFEB3B' : char.color;
+      const name = step.speaker === 'all' ? '모두' : char.name;
+      await this.ui.showDialogueBox(name, step.text, boxColor, () => {});
+      this.renderer.setCharacterState(step.speaker, 'idle');
+      this.renderer.setActiveSpeaker(null);
+    }
+
+    async handleEvent(step) {
+      await this.ui.showEventOverlay(step.text, step.effect);
+      if (step.text.includes('테마곡')) this.state.viewerCount = 12847;
+      else if (step.text.includes('AI 음성')) this.state.viewerCount += 5000;
+      else if (step.text.includes('투표')) this.state.viewerCount += 8000;
+      else if (step.text.includes('크레딧')) this.state.viewerCount = 47293;
+      this.ui.updateViewerCount(this.state.viewerCount);
+    }
+
+    async handleChoice(step) {
+      this.state.isAnimating = true;
+      const isPlayerTurn = step.forCharacters.includes(this.state.selectedChar);
+      if (isPlayerTurn) {
+        return new Promise((resolve) => {
+          this.ui.showChoices(step.options, async (optionIndex) => {
+            await this.makeChoice(optionIndex, step.options[optionIndex]);
+            this.state.isAnimating = false;
+            resolve();
+            setTimeout(() => this.processStep(), 500);
+          });
+        });
+      } else {
+        await this.autoAnswer(step);
+        this.state.currentStep++;
+        this.state.isAnimating = false;
+        await this.delay(500);
+        this.processStep();
+      }
+    }
+
+    async makeChoice(optionIndex, option) {
+      const mood = option.mood;
+      const score = option.score;
+      this.state.score += score;
+      this.state.choices[mood]++;
+      this.state.choiceCount++;
+      this.lastChoiceMood = mood;
+      const viewerIncrease = score === 3 ? 2000 : score === 2 ? 1000 : 500;
+      this.state.viewerCount += viewerIncrease;
+      this.state.viewerCount = Math.min(this.state.viewerCount, this.state.maxViewerCount);
+      this.ui.hideDialogue();
+      await this.delay(200);
+      this.ui.updateViewerCount(this.state.viewerCount);
+      this.updateProgress();
+    }
+
+    async handleReaction(step) {
+      if (!step.reactions) return;
+      const moodKey = this.lastChoiceMood || 'safe';
+      for (const [charId, texts] of Object.entries(step.reactions)) {
+        if (charId === this.state.selectedChar) continue;
+        if (!CHARACTERS[charId]) continue;
+        const idx = moodKey === 'bold' ? 1 : moodKey === 'funny' ? 2 : 0;
+        const text = texts[Math.min(idx, texts.length - 1)];
+        this.renderer.setActiveSpeaker(charId);
+        this.renderer.setCharacterState(charId, 'react');
+        await this.ui.showDialogueBox(CHARACTERS[charId].name, text, CHARACTERS[charId].color, () => {});
+        this.renderer.setCharacterState(charId, 'idle');
+        this.renderer.setActiveSpeaker(null);
+        break;
+      }
+      this.lastChoiceMood = null;
+    }
+
+    async autoAnswer(step) {
+      const otherChars = step.forCharacters.filter((id) => id !== this.state.selectedChar);
+      const selectedChar = otherChars[Math.floor(Math.random() * otherChars.length)];
+      const randomOption = step.options[Math.floor(Math.random() * step.options.length)];
+      const char = CHARACTERS[selectedChar];
+      await this.ui.showDialogueBox(char.name, randomOption.text, char.color, () => {});
+      this.state.score += randomOption.score;
+      this.state.choices[randomOption.mood]++;
+    }
+
+    updateProgress() {
+      const progress = (this.state.currentStep / SCENES.length) * 100;
+      this.ui.updateProgress(progress);
+    }
+
+    getResult() {
+      let grade = 'C';
+      if (this.state.score >= GRADE_THRESHOLD.S) grade = 'S';
+      else if (this.state.score >= GRADE_THRESHOLD.A) grade = 'A';
+      else if (this.state.score >= GRADE_THRESHOLD.B) grade = 'B';
+      const gradeData = RESULT_GRADES[grade];
+      const selectedChar = CHARACTERS[this.state.selectedChar];
+      return {
+        grade,
+        character: selectedChar,
+        title: gradeData.title,
+        rating: gradeData.rating,
+        personality: gradeData.personality,
+        comments: gradeData.comments,
+        score: this.state.score,
+        choices: this.state.choices,
+        finalViewerCount: this.state.viewerCount
+      };
+    }
+
+    async showResult() {
+      this.state.screen = 'result';
+      const resultData = this.getResult();
+      this.ui.showResult(resultData, () => this.restart());
+    }
+
+    restart() {
+      this.state = {
+        screen: 'title',
+        selectedChar: null,
+        currentStep: 0,
+        score: 0,
+        choices: { safe: 0, bold: 0, funny: 0 },
+        viewerCount: 12847,
+        maxViewerCount: 47293,
+        isAnimating: false,
+        choiceCount: 0,
+        totalChoices: 0
+      };
+      this.lastChoiceMood = null;
+      this.ui.hideDialogue();
+      this.renderer.setPlayerCharacter(null);
+      this.renderer.setActiveSpeaker(null);
+      this.showTitle();
+    }
+
+    delay(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+  }
+
+  // ============================================
+  // MAIN.JS - Application entry point
+  // ============================================
+
+  class App {
+    constructor() {
+      this.canvas = document.getElementById('game-canvas');
+      this.uiLayer = document.getElementById('ui-layer');
+      this.renderer = new Renderer(this.canvas);
+      this.ui = new UI(this.uiLayer);
+      this.audio = new Audio();
+      this.game = new Game(this.renderer, this.ui, this.audio);
+      this.audioInitialized = false;
+    }
+
+    init() {
+      const initAudioOnce = () => {
+        if (!this.audioInitialized) {
+          this.audio.init();
+          this.audioInitialized = true;
+        }
+      };
+      document.addEventListener('click', initAudioOnce, { once: true });
+      document.addEventListener('touchstart', initAudioOnce, { once: true });
+      this.renderer.init();
+      this.renderer.start();
+      this.game.showTitle();
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const app = new App();
+    app.init();
+    window.__app = app;
+  });
+})();
+  </script>
+</body>
+</html>
